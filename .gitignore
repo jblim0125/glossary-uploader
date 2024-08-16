@@ -1,3 +1,7 @@
+.venv/
+.idea/*
+ingestion/
+src/generated/
 # Compiled class file
 *.class
 

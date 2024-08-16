@@ -1,0 +1,75 @@
+#  Copyright 2021 Collate
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#  http://www.apache.org/licenses/LICENSE-2.0
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+"""
+Mixin class containing Server and client specific methods
+
+To be used by OpenMetadata class
+"""
+from typing import Optional
+import re
+
+from mobigen.datafabric.client.client import  Client 
+from mobigen.datafabric.utils.logger import rest_logger
+
+logger = rest_logger()
+
+
+class VersionMismatchException(Exception):
+    """
+    Used when server and client versions do not match
+    """
+
+
+class VersionNotFoundException(Exception):
+    """
+    Used when server doesn't return a version
+    """
+
+
+class VersionParsingException(Exception):
+    """
+    Used when we cannot parse version information from a string
+    """
+
+
+class ServerApis:
+    """
+    OpenMetadata API methods related to the Pipeline Entity
+
+    To be inherited by OpenMetadata
+    """
+
+    client: Client
+
+    def get_server_version(self) -> str:
+        """
+        Run endpoint /system/version to check server version
+        :return: Server version
+        """
+        try:
+            raw_version = self.client.get("/system/version")["version"]
+        except KeyError:
+            raise VersionNotFoundException(
+                "Cannot Find Version at api/v1/system/version."
+                + " If running the server in DEV mode locally, make sure to `mvn clean install`."
+            )
+        try:
+            """
+            Given a raw version string, such as `0.10.1.dev0` or
+            `0.11.0-SNAPSHOT`, we should extract the major.minor.patch
+            :param raw_version: raw string with version info
+            :return: Clean version string
+            """
+            return re.match(r"\d+.\d+.\d+", raw_version).group(0)
+        except AttributeError as err:
+            raise VersionParsingException(
+                f"Can't extract server version from {raw_version}: {err}"
+            )
